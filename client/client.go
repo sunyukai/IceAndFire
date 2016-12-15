@@ -7,7 +7,9 @@
 package main
 
 import (
+	"bytes"
 	"flag"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -49,6 +51,17 @@ func main() {
 			log.Printf("recv: %s", message)
 		}
 	}()
+
+	for {
+		var msg string
+		fmt.Scanln(&msg)
+		bmsg := bytes.TrimSpace(bytes.Replace([]byte(msg), []byte{'\n'}, []byte{' '}, -1))
+		err := c.WriteMessage(websocket.TextMessage, bmsg)
+		if err != nil {
+			log.Println("write:", err)
+			return
+		}
+	}
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
