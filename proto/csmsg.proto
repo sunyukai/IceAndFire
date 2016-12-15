@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package protomsg;
+
+enum MSG_ID {
+	MSG_ID_NONE = 0;
+	MSG_ID_TEST = 1;
+}
+
+message Head {
+	MSG_ID Id = 1;
+}
+
+message Chat {
+	string Send = 1;
+}
+
+message CSMessage {
+	Head Head = 1;
+	oneof Body {
+		Chat Chat = 2;
+	}
+}
