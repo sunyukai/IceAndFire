@@ -17,7 +17,5 @@ message Chat {
 
 message CSMessage {
 	Head Head = 1;
-	oneof Body {
-		Chat Chat = 2;
-	}
+	Chat Chat = 2;
 }

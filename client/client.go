@@ -7,15 +7,18 @@
 package main
 
 import (
-	"bytes"
+	//	"bytes"
 	"flag"
 	"fmt"
 	"log"
 	"net/url"
 	"os"
 	"os/signal"
-	"time"
+	//	"time"
 
+	"IceAndFire/protomsg"
+
+	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
 )
 
@@ -35,13 +38,11 @@ func main() {
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
-	defer c.Close()
 
-	done := make(chan struct{})
+	defer c.Close()
 
 	go func() {
 		defer c.Close()
-		defer close(done)
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
@@ -52,42 +53,39 @@ func main() {
 		}
 	}()
 
-	for {
-		var msg string
-		fmt.Scanln(&msg)
-		bmsg := bytes.TrimSpace(bytes.Replace([]byte(msg), []byte{'\n'}, []byte{' '}, -1))
-		err := c.WriteMessage(websocket.TextMessage, bmsg)
-		if err != nil {
-			log.Println("write:", err)
-			return
+	cmd := make(chan int32)
+	go func() {
+		for {
+			var input int32
+			fmt.Scanf("%d", &input)
+			cmd <- input
 		}
-	}
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
+	}()
 
 	for {
 		select {
-		case t := <-ticker.C:
-			err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
-			if err != nil {
-				log.Println("write:", err)
-				return
+		case i := <-cmd:
+			switch i {
+			case 1:
+				var msg protomsg.CSMessage
+				msg.Head = &protomsg.Head{protomsg.MSG_ID_MSG_ID_TEST}
+				msg.Chat = &protomsg.Chat{Send: "Chat message"}
+				bmsg, _ := proto.Marshal(&msg)
+				err := c.WriteMessage(websocket.BinaryMessage, bmsg)
+				if err != nil {
+					log.Println("write:", err)
+					return
+				}
+			default:
+				log.Println("unknow message")
 			}
 		case <-interrupt:
 			log.Println("interrupt")
-			// To cleanly close a connection, a client should send a close
-			// frame and wait for the server to close the connection.
 			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			if err != nil {
 				log.Println("write close:", err)
 				return
 			}
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-			}
-			c.Close()
 			return
 		}
 	}
